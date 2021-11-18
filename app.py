@@ -7,9 +7,7 @@ from werkzeug.utils import secure_filename
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
 from flask_restful import Api, Resource
-
-UPLOADED_FILES = './files'
-ALLOWED_EXTENSIONS = {'csv', 'geojson', 'zip'}
+  
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Thisissecret!'
@@ -48,7 +46,7 @@ class Coordinate(Resource):
 class Coordinates(Resource):
     def get(self):
         response = {
-            "status": 404,
+            "status": 204,
             "message": "No coordinate available"
         }
 
@@ -68,12 +66,12 @@ class Coordinates(Resource):
             response['status'] = 200
             response['message'] = all_cord
             return response, 200
-        return response, 404
+        return response, 204
 
 class CoordinateId(Resource):
     def get(self, coordinate_id):
         response = {
-            "status": 404,
+            "status": 204,
             "message": "Coordinate not available"
         }
         aoi_details = AoiCoordinate.query.filter_by(id=coordinate_id).first()
@@ -86,12 +84,12 @@ class CoordinateId(Resource):
             }
             response['status'] = 200
             response['message'] = details
-            return response
-        return response
+            return response, 200
+        return response, 204
 
     def put(self, coordinate_id):
         response = {
-            "status": 404,
+            "status": 204,
             "message": "AOI is not available"
         }
         aoi_details = AoiCoordinate.query.filter_by(id=coordinate_id).first()
@@ -109,11 +107,11 @@ class CoordinateId(Resource):
             response['status'] = 200
             response['message'] = "aoi updated successfully"
             return response, 200
-        return response, 404
+        return response, 204
 
     def delete(self, coordinate_id):
         response = {
-            "status": 404,
+            "status": 204,
             "message": "AOI is not available"
         }
         aoi = AoiCoordinate.query.filter_by(id=coordinate_id)
@@ -122,6 +120,7 @@ class CoordinateId(Resource):
             db.session.commit()
             response['status'] = 200
             response['message'] = 'Aoi deleted successfully'
+            return response, 200
 
 api.add_resource(Coordinate, "/api/coordinate")
 api.add_resource(Coordinates, "/api/coordinates")

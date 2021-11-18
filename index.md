@@ -1,106 +1,53 @@
-In this tutorial, we will learn how to create a geospatial server and database, the server will power the database and will serve as the gateway between the users and the spatial database. Let's define some keywords:
+We are building a REST API that can be used to update a geospatial database, using flask restful we will perform basic CRUD(create, read, update and delete) operations on spatial data. It's recommended that readers should know how to create a geospatial database, you can click here to learn how to create a geodatabase using flask, PostgreSQL and Postgis. 
 
-Spatial data is any data that contains the longitude and latitude  of any location, they provide information about a physical location and are also referred to as Geographic Information System(GIS). 
 
-Geoserver is a server that processes spatial data and also powers a geodatabase. It serves as the link between geodatabase and users by giving them access to spatial data.
+In this tutorial, we will learn how to create, read, update and delete spatial data from a geospatial database using flask_restful. We will be converting the code in this tutorial to API, so that accepts a request from different apps such as mobile app, web-app and desktop app.
 
-The geodatabase is a database that stores spatial data, it allows users to create, update, retrieve and delete spatial data. The data can be stored as points, lines or polygons. We will use PostgreSQL extension call Postgis so that the database can handle spatial data.
-
-## Table of Contents
--  [Prerequisites](#prerequisites)
-- [Database](#database)
-- [Saving Coordinates](#saving-coordinates)
-- [Displaying Coordinates](#displaying-coordinates)
+### Table of Contents
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Post Request](#post-request)
+- [Get Request](#get-request)
+- [Get coordinate by ID](#get-coordinate-by-id)
+- [Update Coordinate](#update-coordinate)
+- [Delete](#delete)
 - [Conclusion](#conclusion)
 - [Further Reading](#further-reading)
 
-##Prerequisites
--   Basic understanding of Python, HTMl and Jinja Templating
--   PostgreSQL
--   PostGis
 
 
-Before we start coding we need to do some basic setup, We will create and activate a new environment called env, [click here](https://www.section.io/engineering-education/introduction-to-virtual-environments-and-dependency-managers/) to learn how to create a new virtual environment
+### Prerequisites
+* How to create a Flask app
+* How to use Postman
 
-let's create a database called geodata in PostgreSQL
+Readers need to know how to create a geospatial database and server, you can click here to read this tutorial on how to create a geospatial database, server and a new flask app.
 
-##Database
-Let's start by installing Postgis, download and install the software from `https://postgis.net/install`. We will create the database from our terminal. let's sign in as a postgres user and type your postgres user password:
-
-`psql -U postgres`
-
-The next step is to create the database type:
-`CREATE DATABASE geodata;`
-
-We need to connect the database and also enable the Postgis extension on it using the code below:
+### Setup
+We need to install Flask Restful, in your terminal and type
+```bash
+pip install flask-restful
 ```
-\c geodata;
-CREATE EXTENSION postgis;
-\q
+We need to create our API object so let and attach it to a variable called `api` import Api from flask_restful.
+```py
+from flask_restful import Api
+api = Api(app)
 ```
-We connected to the database using `\c geodata;` while `CREATE EXTENSION postgis;` enabled the postgis extension and we quit psql using `\q`
+The api object and the add_resource() method will be used in creating our endpoints.
 
-The next step is to connect our database to the project so let's install Flask, geoalchemy2, flask_sqlalchemy and psycopg2
+### Post Request
+Flask-Restful resources give us access to different HTTP methods and one resource can contain multiple HTTP methods such as: get, post, put and delete each method will return a value and a response code after execution. Using the code snippet below let's create our first class Coordinate using flask restful resource. The route will use the post request method for saving coordinates to the database
 
-we will install flask by using:
-`pip install flask geoalchemy2 flask_sqlalchemy psycopg2`
+```py
+from flask_restful import Api, Resource
 
-let's start building our project, let's create a new file app.py and type the following codes:
-```
-from flask import Flask
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'Thisissecret!'
-app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:password@localhost/geodata'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port="5000", debug=True)
-```
-
-We created a new Flask instance in the app variable which we can use in some parts of our project. We also created a secret key, it should be changed to a secure key you can generate a random number using UUID. The last section tells the app to run when the condition __name__ == "__main__" is true.
-
-The code app.run starts our server and it's running on the ip 127.0.01 and on the default port 5000 the port can be changed to any 4 number as long as it's not being used by any app/software and the server will work effectively.
-```
-app.config['SQLALCHEMY_DATABASE_URI']='postgresql://postgres:password@localhost/geodata'
-```
-postgresql tells sqlalchemy that we are using a PostgreSQL database management system
-postgres: is our database user
-password: is the database user password
-geodata: is the database that we will use
-
-
-We will connect our database to the project using flask_sqlalchemy, we will import from SQLAlchemy using:
-`from flask_sqlalchemy import SQLAlchemy`
-
-After importing we will merge the instance to our app using:
-`db = SQLAlchemy(app)`
-We will use the db object to create our models and for saving data to our database. 
-
-It's time to create our table, let's call it AoiCordinate and it will have a geometry column called coordinate  it will store all our coordinates:
-```
-class AoiCoordinate(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    aoi = db.Column(db.String(50), nullable=False)
-    coordinate = db.Column(Geometry('POLYGON'))
-```
-We will use Python shell to create our database by importing the db object, in your terminal type python next import the db object
-```
-from app import db
-db.create_all()
-exit()
-```
-
-## Saving Coordinates
-
-Users can submit their coordinates by filling a form and uploading a geojson file or shapefile, so let's create the submission endpoint. Let's add these codes to our app.py file
-
-```
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
+class Coordinate(Resource):
+    def post(self):
+        response = {
+            "status": 400,
+            "message": "Coordinate not saved"
+        }
         aoi = request.form.get('aoi')
-        file = request.files['file']
+        file = request.files['coordinate']
         read_file = file.read()
         file_json = json.loads(read_file)
         aoi_coordinate = file_json["features"][0]['geometry']
@@ -108,95 +55,137 @@ def index():
         db.session.add(coordinate)
         db.session.commit()
 
-        return aoi
-return render_template('index.html')
+        response['status'] = 201
+        response['message'] = "Coordinate saved successfully"
+
+        return response, 201
 ```
+We imported Resource from flask_restful and use it in creating the class `Coordinate` this enables us to add the post method to the class, this means that it will accept only a post request. The response variable will be returned to the users after each submission, if the form is not saved successfully the default response will be returned with a status code of 400(bad requested) which means the request was not fulfilled but if the form was saved successfully the response is an update to 'Coordinate saved successfully' and the status code changed to 201(created) which means the request has been fulfiled. 
 
-The `@app.route('/', methods=['GET', 'POST'])` creates the endpoint it means that the form will be displayed on the homepage and it will accept GET and POST requests. We create a function called index and it renders the index.html page. Inside the function, we checked if the request is a POST request so that we can processing the form. The variable aoi stores the user area of interest, while the file variable stores the uploaded coordinate. The file content was read using the read() method and converted to a JSON object using `json.loads()`. 
-
-The aoi_coordinate variable selects the coordinates of the Polygon from file_json, the coordinate variable adds the aoi and coordinate as defined in our model. We added the coordinate to our database and committed the changes using the db object.
-
-Flask uses the Jinja templating method to render HTML pages and that's what we will used in this tutorial. [Click here](https://hackersandslackers.com/flask-jinja-templates/)  to read more about Jinja templating.
-
-HTML pages are stored in the templates folder, so let's create a new folder called templates in our root directory. Inside the templates folder, we will also create a new file called index.html. We will use bootstrap 5.1 to style our form.
+In other to make the resource accessible, we will create an endpoint using the api object that was created earlier and the  `add_resource()` method from flask_restful. The add_resource() accepts some parameters such as the route and the endpoint. let's create our first endpoint.
+```py
+api.add_resource(Coordinate, "/api/coordinate")
 ```
-    <form action="{{url_for('index')}}",  method="post">
-     <div class="mb-3">
-    <label for="exampleInputText" class="form-label">Location</label>
-    <input type="text" class="form-control" id="exampleInputText" >
+We passed the Coordinate class and the endpoint as parameters to the add_resource method. 
 
-  </div>
-    <div class="mb-3">
-  <label for="formFile" class="form-label">Upload Coordinate</label>
-  <input class="form-control" name="coordinate" type="file" id="formFile">
-</div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-</form>
-```
-The form action attributes tell the browser that the request will be processed on the homepage, while the methods mean that it's a post request. 
+### Get Request
+Get request is used for retrieving data from the database, in this method, we will retrieve all the data that has been saved in the geodatabase using the get request method.
 
-## Displaying Coordinates
-Let's create another route that will display all the saved coordinates, the coordinates are saved as binary so we will use geoalchemy2 to_shape to convert it to coordinates. 
-We will import to_shape and use these codes to retrieve all our coordinates.
-```
-from geoalchemy2.shape import to_shape
-
-@app.route('/all')
-def all_coordinate():
-    coordinates = AoiCoordinate.query.all()
-
-    all_cord = []
-    for location in coordinates:
-        location_coordinate = to_shape(location.coordinate)
-        location_aoi = location.aoi
-        location = {
-            'location_coordinate': location_coordinate,
-            'location_aoi': location_aoi
+```py
+class Coordinates(Resource):
+    def get(self):
+        response = {
+            "status": 204,
+            "message": "No coordinate available"
         }
-        all_cord.append(location)
 
-    return render_template('all.html', all_coordinates=all_cord)
+        coordinates = AoiCoordinate.query.all()
 
+        if coordinates:
+
+            all_cord = []
+            for location in coordinates:
+
+                location_details = {
+                    'id': location.id,
+                    'location_coordinate': str(to_shape(location.coordinate)),
+                    'location_aoi': location.aoi
+                }
+                all_cord.append(location_details)
+            response['status'] = 200
+            response['message'] = all_cord
+            return response, 200
+        return response, 200
 ```
-We queried the database and retrieve all the coordinates in the coordinates variable. Since they are stored as binary we need to convert them back to coordinates by looping through them and appending them to the empty list all_cord. While looping each coordinate is saved in the location_coordinate variable, while the aoi is saved in the location_aoi variable.
+We created a new class called Coordinates, the name is plural because it will retrieve all the coordinates that are saved in the database. The naming convention is important in API because it represents what the class entails. We created only one method because we want to retrieve only the saved data. If it fetches coordinates from the database it will return the updated response message and 200 status code but if none is available it returned 204.
 
-The location dictionary stores each location aoi and coordinate and it's appended to the all_coord list. We stored the list in all_coordinates and passed it to the all.html page.
+in other to create the endpoint, we will also pass the class and endpoint name as parameters to the add_resource method.
 
-
-Let's create the all.html page and it will extend the base.html, the page will display all our coordinates, using the codes below:
-```
-{% extends 'base.html' %}
-
-{% block main %}
-
-<div class="container">
-    <table class="table">
-  <thead>
-    <tr>
-      <th scope="col">AOI</th>
-      <th scope="col">Coordinate</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for coordinate in all_coordinates %}
-    <tr>
-      <td>{{coordinate.location_aoi}}</td>
-       <td>{{coordinate.location_coordinate}}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+```py
+api.add_resource(Coordinates, "/api/coordinates")
 ```
 
-We looped through the all_coordinates that was passed from the app.py so that we can get each location aoi and coordinate.
+### Get coordinate by ID
+We can retrieve a specific coordinate using its id, it will be passed as a parameter to the URL.
+```py
+class CoordinateId(Resource):
+    def get(self, coordinate_id):
+        response = {
+            "status": 204,
+            "message": "Coordinate not available"
+        }
+        aoi_details = AoiCoordinate.query.filter_by(id=coordinate_id).first()
+        if aoi_details:
 
+            details = {
+                "id": aoi_details.id,
+                "location_coordinate": str(to_shape(aoi_details.coordinate)),
+                "location_aoi": aoi_details.aoi
+            }
+            response['status'] = 200
+            response['message'] = details
+            return response, 200
+        return response, 204
+```
 
-##Conclusion
-In this tutorial we learnt how to create a soespatial server and database, that saves and return a location coordinates. The app can be further built as an API service and rendered to logistics company because they can easily get's the coordinate of a prticular location. 
+We created a new class `CoordinateId` id was added to its name because we will retrieve coordinates using their ID. We added a new parameter `cordinate_id` to the get method because it will display the ID is passed to the method. The ID is also passed to the search query in other to retrieve it from the database, if the ID is available it will be displayed and status code 200 is returned but if it's not available the default response message is displayed and the status code 204 is returned. The `coordinate_id` will be passed as a parameter to the URL also.
+```py
+api.add_resource(CoordinateId, '/api/coordinate/<int:coordinate_id>')
+```
+We can only pass an integer to the URL because we specify our variable type as an integer. The coordinate_id will be passed from the URL to the get method, which will be used to fetch the coordinate from our database.
 
-## Further Reading
-- [Python Virtual Environment](https://www.section.io/engineering-education/introduction-to-virtual-environments-and-dependency-managers/) 
+### Update Coordinate
+After retrieving a coordinate using its ID we can update it by sending a put request from Postman with the updated fields.
+```py
+ def put(self, coordinate_id):
+        response = {
+            "status": 204,
+            "message": "AOI is not available"
+        }
+        aoi_details = AoiCoordinate.query.filter_by(id=coordinate_id).first()
+        if aoi_details:
+            file = request.files['coordinate']
+            aoi = request.form.get('aoi')
+            read_file = file.read()
+            file_json = json.loads(read_file)
+            aoi_coordinate = file_json["features"][0]['geometry']
 
-- [Flask Jinja Templating](https://hackersandslackers.com/flask-jinja-templates/) 
+            aoi_details.coordinate = aoi_coordinate
+            aoi_details.aoi = aoi
+            db.session.commit()
 
+            response['status'] = 200
+            response['message'] = "aoi updated successfully"
+            return response, 200
+        return response, 204
+```
+Just like the last get method, the Put method also accepts the coordinate_id that was passed from the URL, and it will use the same endpoint.
+
+### Delete
+This method is used for deleting the selected coordinate by sending a delete request from Postman. We will add the method to the CoordinateId class so that it will receive the coordinate_id.
+
+```py
+
+    def delete(self, coordinate_id):
+        response = {
+            "status": 204,
+            "message": "AOI is not available"
+        }
+        aoi = AoiCoordinate.query.filter_by(id=coordinate_id)
+        if aoi:
+            db.session.delete(aoi)
+            db.session.commit()
+            response['status'] = 200
+            response['message'] = 'Aoi deleted successfully'
+            return response, 200
+```
+
+If the coordinate is deleted successfully it will return the updated response code and status 200, but if not the default response will be returned.
+
+### Conclusion
+We have created an API that can be used for creating, reading, updating and deleting records from a database. It can be deployed for mobile, web and desktop apps.
+
+### Further Reading
+- [How to create a Geoserver and Geodatabase](https://www.section.io/engineering-education/how-to-create-a-geoserver-and-geodatabase/)
+- [Flask Restful](https://flask-restful.readthedocs.io/en/latest)
+- [HTTP status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
