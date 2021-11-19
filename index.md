@@ -1,7 +1,6 @@
-We are building a REST API that can be used to update a geospatial database, using flask restful we will perform basic CRUD(create, read, update and delete) operations on spatial data. It's recommended that readers should know how to create a geospatial database, you can click here to learn how to create a geodatabase using flask, PostgreSQL and Postgis. 
+We are building a REST API that can be used to update a geospatial database. Using flask restful, we will perform basic CRUD(create, read, update and delete) operations on spatial data. It is recommended that readers should know how to create a geospatial database. You can click here to learn how to create a geodatabase using flask, PostgreSQL and Postgis. 
 
-
-In this tutorial, we will learn how to create, read, update and delete spatial data from a geospatial database using flask_restful. We will be converting the code in this tutorial to API, so that accepts a request from different apps such as mobile app, web-app and desktop app.
+In this tutorial, we will learn how to create, read, update and delete spatial data from a geospatial database using flask_restful. We will be converting the code in this [tutorial](https://www.section.io/engineering-education/how-to-create-a-geoserver-and-geodatabase/) to API, so that it can accept a request from different apps such as mobile apps, web-apps and desktop apps.
 
 ### Table of Contents
 - [Prerequisites](#prerequisites)
@@ -20,22 +19,22 @@ In this tutorial, we will learn how to create, read, update and delete spatial d
 * How to create a Flask app
 * How to use Postman
 
-Readers need to know how to create a geospatial database and server, you can click here to read this tutorial on how to create a geospatial database, server and a new flask app.
+Readers need to know how to create a geospatial database and server, you can [click here](https://www.section.io/engineering-education/how-to-create-a-geoserver-and-geodatabase/) to read this tutorial on how to create a geospatial database, server and a new flask app.
 
 ### Setup
-We need to install Flask Restful, in your terminal and type
+First, install Flask Restful, by typing in your terminal 
 ```bash
-pip install flask-restful
+pip install flask_restful
 ```
-We need to create our API object so let and attach it to a variable called `api` import Api from flask_restful.
+The next step is to import the  API object from flask_restful and store it in a variable called `api` 
 ```py
 from flask_restful import Api
 api = Api(app)
 ```
-The api object and the add_resource() method will be used in creating our endpoints.
+After creating the api variable we will need to create our API endpoints. The api object and the add_resource() method will be used in creating our endpoints.
 
 ### Post Request
-Flask-Restful resources give us access to different HTTP methods and one resource can contain multiple HTTP methods such as: get, post, put and delete each method will return a value and a response code after execution. Using the code snippet below let's create our first class Coordinate using flask restful resource. The route will use the post request method for saving coordinates to the database
+Flask-Restful resources give us access to different HTTP methods and one resource can contain multiple HTTP methods such as: get, post, put and delete. Each method will return a value and a response code after execution. Using the code snippet below let's create our first class Coordinate using flask restful resource. The route will use the post request method for saving coordinates to the database
 
 ```py
 from flask_restful import Api, Resource
@@ -60,13 +59,13 @@ class Coordinate(Resource):
 
         return response, 201
 ```
-We imported Resource from flask_restful and use it in creating the class `Coordinate` this enables us to add the post method to the class, this means that it will accept only a post request. The response variable will be returned to the users after each submission, if the form is not saved successfully the default response will be returned with a status code of 400(bad requested) which means the request was not fulfilled but if the form was saved successfully the response is an update to 'Coordinate saved successfully' and the status code changed to 201(created) which means the request has been fulfiled. 
+We imported Resource from flask_restful and used it in creating the class `Coordinate` this enables us to add the post method to the class, this means that it will accept only a post request. The response variable will be returned to the users after each submission. If the form is not saved successfully, the default response will be returned with a status code of 400(bad requested) which means the request was not fulfilled but if the form was saved successfully the updated response is an update tis returned  `Coordinate saved successfully` and the status code changed to 201(created) which means the request has been fulfilled. 
 
-In other to make the resource accessible, we will create an endpoint using the api object that was created earlier and the  `add_resource()` method from flask_restful. The add_resource() accepts some parameters such as the route and the endpoint. let's create our first endpoint.
+In order to make the resource accessible, we will create an endpoint using the api object that was created earlier and the  `add_resource()` method from flask_restful. The add_resource() accepts some parameters such as the route and the endpoint. Let's create our first endpoint.
 ```py
 api.add_resource(Coordinate, "/api/coordinate")
 ```
-We passed the Coordinate class and the endpoint as parameters to the add_resource method. 
+We passed the Coordinate class and the endpoint as parameters to the add_resource() method. 
 
 ### Get Request
 Get request is used for retrieving data from the database, in this method, we will retrieve all the data that has been saved in the geodatabase using the get request method.
@@ -97,9 +96,9 @@ class Coordinates(Resource):
             return response, 200
         return response, 200
 ```
-We created a new class called Coordinates, the name is plural because it will retrieve all the coordinates that are saved in the database. The naming convention is important in API because it represents what the class entails. We created only one method because we want to retrieve only the saved data. If it fetches coordinates from the database it will return the updated response message and 200 status code but if none is available it returned 204.
+We created a new class called Coordinates. The name is plural because it will retrieve all the coordinates that are saved in the database. The naming convention is important in API because it represents what the class entails. We used only one method because we want to retrieve only the saved data. If it fetches coordinates from the database it will return the updated response message and 200 status code but if none is available it returns 204.
 
-in other to create the endpoint, we will also pass the class and endpoint name as parameters to the add_resource method.
+In order to create the endpoint, we will also pass the class and endpoint name as parameters to the add_resource method.
 
 ```py
 api.add_resource(Coordinates, "/api/coordinates")
@@ -128,7 +127,7 @@ class CoordinateId(Resource):
         return response, 204
 ```
 
-We created a new class `CoordinateId` id was added to its name because we will retrieve coordinates using their ID. We added a new parameter `cordinate_id` to the get method because it will display the ID is passed to the method. The ID is also passed to the search query in other to retrieve it from the database, if the ID is available it will be displayed and status code 200 is returned but if it's not available the default response message is displayed and the status code 204 is returned. The `coordinate_id` will be passed as a parameter to the URL also.
+We created a new class `CoordinateId`. ID was added to its name because we will retrieve coordinates using their ID. We added a new parameter `cordinate_id` to the get method because it will display the ID that is passed to the method. The ID is also passed to the search query in order to retrieve it from the database. If the ID is available it will be displayed and status code 200 is returned but if it's not available the default response message is displayed and the status code 204 is returned. The `coordinate_id` will be passed as a parameter to the URL also.
 ```py
 api.add_resource(CoordinateId, '/api/coordinate/<int:coordinate_id>')
 ```
@@ -189,3 +188,4 @@ We have created an API that can be used for creating, reading, updating and dele
 - [How to create a Geoserver and Geodatabase](https://www.section.io/engineering-education/how-to-create-a-geoserver-and-geodatabase/)
 - [Flask Restful](https://flask-restful.readthedocs.io/en/latest)
 - [HTTP status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+
